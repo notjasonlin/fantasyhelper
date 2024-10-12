@@ -1,13 +1,47 @@
-import { signInAction } from "@/app/actions";
+'use client';
+
 import { FormMessage, Message } from "@/components/form-message";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 export default function Login({ searchParams }: { searchParams: Message }) {
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const supabase = createClientComponentClient();
+
+  const handleSignIn = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+
+    const formData = new FormData(event.currentTarget);
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      console.error('Sign-in error:', error);
+      setError(error.message);
+    } else {
+      console.log('Sign-in successful, refreshing session');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        console.log('Session refreshed, redirecting to dashboard');
+        router.push('/dashboard');
+      } else {
+        console.error('Failed to get session after sign-in');
+        setError('Failed to create session. Please try again.');
+      }
+    }
+  };
+
   return (
-    <form className="flex-1 flex flex-col min-w-64">
+    <form onSubmit={handleSignIn} className="flex-1 flex flex-col min-w-64">
       <h1 className="text-2xl font-medium">Sign in</h1>
       <p className="text-sm text-foreground">
         Don't have an account?{" "}
@@ -33,10 +67,9 @@ export default function Login({ searchParams }: { searchParams: Message }) {
           placeholder="Your password"
           required
         />
-        <SubmitButton pendingText="Signing In..." formAction={signInAction}>
+        <SubmitButton pendingText="Signing In...">
           Sign in
         </SubmitButton>
-        <FormMessage message={searchParams} />
       </div>
     </form>
   );
