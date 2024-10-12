@@ -23,9 +23,9 @@ export default function Login({ searchParams }: { searchParams: Message }) {
     const password = formData.get('password') as string;
 
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-
     if (error) {
       console.error('Sign-in error:', error);
+      console.error('Error details:', error.message, error.status);
       setError(error.message);
     } else {
       console.log('Sign-in successful, refreshing session');
