@@ -22,21 +22,32 @@ export default function Login({ searchParams }: { searchParams: Message }) {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      console.error('Sign-in error:', error);
-      console.error('Error details:', error.message, error.status);
-      setError(error.message);
-    } else {
-      console.log('Sign-in successful, refreshing session');
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        console.log('Session refreshed, redirecting to dashboard');
-        router.push('/dashboard');
+    console.log('Attempting sign-in with email:', email); // Log the email being used
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        console.error('Sign-in error:', error);
+        console.error('Error details:', error.message, error.status);
+        setError(error.message);
+      } else if (data?.user) {
+        console.log('Sign-in successful, user:', data.user);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          console.log('Session refreshed, redirecting to dashboard');
+          router.push('/dashboard');
+        } else {
+          console.error('Failed to get session after sign-in');
+          setError('Failed to create session. Please try again.');
+        }
       } else {
-        console.error('Failed to get session after sign-in');
-        setError('Failed to create session. Please try again.');
+        console.error('Sign-in successful but no user data returned');
+        setError('An unexpected error occurred. Please try again.');
       }
+    } catch (err) {
+      console.error('Unexpected error during sign-in:', err);
+      setError('An unexpected error occurred. Please try again.');
     }
   };
 
@@ -70,6 +81,7 @@ export default function Login({ searchParams }: { searchParams: Message }) {
         <SubmitButton pendingText="Signing In...">
           Sign in
         </SubmitButton>
+        {error && <p className="text-red-500 mt-2">{error}</p>}
       </div>
     </form>
   );

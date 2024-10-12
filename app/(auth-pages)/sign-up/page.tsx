@@ -5,16 +5,15 @@ import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { SmtpMessage } from "../smtp-message";
-import { useState } from 'react';
-import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 export default function Signup({ searchParams }: { searchParams: Message }) {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = createClientComponentClient();
 
   const handleSignUp = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -25,18 +24,34 @@ export default function Signup({ searchParams }: { searchParams: Message }) {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
-    const { error } = await supabase.auth.signUp({ 
-      email, 
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+    console.log('Attempting sign-up with email:', email); // Log the email being used
 
-    if (error) {
-      setError(error.message);
-    } else {
-      setMessage('Check your email for the confirmation link.');
+    try {
+      const { data, error } = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        console.error('Sign-up error:', error);
+        setError(error.message);
+      } else if (data.user) {
+        console.log('Sign-up successful, user:', data.user);
+        setMessage('Sign-up successful. Redirecting to sign-in page...');
+        // Redirect to sign-in page after a short delay
+        setTimeout(() => {
+          router.push('/sign-in');
+        }, 2000);
+      } else {
+        console.error('Sign-up successful but no user data returned');
+        setError('An unexpected error occurred. Please try again.');
+      }
+    } catch (err) {
+      console.error('Unexpected error during sign-up:', err);
+      setError('An unexpected error occurred. Please try again.');
     }
   };
 
@@ -65,8 +80,9 @@ export default function Signup({ searchParams }: { searchParams: Message }) {
             Sign up
           </SubmitButton>
         </div>
+        {error && <p className="text-red-500 mt-2">{error}</p>}
+        {message && <p className="text-green-500 mt-2">{message}</p>}
       </form>
-      <SmtpMessage />
     </>
   );
 }
