@@ -11,36 +11,39 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 export default function Login({ searchParams }: { searchParams: Message }) {
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClientComponentClient();
 
   const handleSignIn = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
+    setLoading(true);
 
     const formData = new FormData(event.currentTarget);
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
-    console.log('Attempting sign-in with email:', email); // Log the email being used
+    console.log('Attempting sign-in with email:', email);
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
         console.error('Sign-in error:', error);
-        console.error('Error details:', error.message, error.status);
         setError(error.message);
       } else if (data?.user) {
         console.log('Sign-in successful, user:', data.user);
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          console.log('Session refreshed, redirecting to dashboard');
-          router.push('/dashboard');
-        } else {
-          console.error('Failed to get session after sign-in');
-          setError('Failed to create session. Please try again.');
-        }
+        console.log('Attempting to redirect to dashboard...');
+        
+        // Try using Next.js router
+        router.push('/dashboard');
+        
+        // Fallback: use window.location after a short delay
+        setTimeout(() => {
+          console.log('Fallback: Using window.location to redirect');
+          window.location.href = '/dashboard';
+        }, 1000);
       } else {
         console.error('Sign-in successful but no user data returned');
         setError('An unexpected error occurred. Please try again.');
@@ -48,6 +51,8 @@ export default function Login({ searchParams }: { searchParams: Message }) {
     } catch (err) {
       console.error('Unexpected error during sign-in:', err);
       setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
