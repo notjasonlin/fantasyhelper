@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { Select } from "@/components/ui/select";
+import Select from 'react-select';
 import Sidebar from '@/components/Sidebar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BarChart } from "@/components/ui/bar-chart";
@@ -86,9 +86,14 @@ export default function PlayerComparison() {
         <div className="mb-8 flex gap-4">
           <Select
             isMulti
-            options={allPlayers.map(player => ({ value: player.id!.toString(), label: player.Player }))}
-            value={selectedPlayers.map(id => ({ value: id, label: getPlayerById(id)?.Player || '' }))}
-            onChange={(selected: any) => handlePlayerSelect(selected.map((s: any) => s.value))}
+            options={allPlayers.map(player => ({ value: player.id!.toString(), label: player.Player || '' }))}
+            value={selectedPlayers.map(id => {
+              const playerName = getPlayerById(id)?.Player ?? '';
+              return { value: id, label: playerName };
+            })}
+            onChange={(selected) => 
+              handlePlayerSelect(selected.map(s => s.value))
+            }
             placeholder="Select up to 4 players"
             className="w-[400px]"
           />
